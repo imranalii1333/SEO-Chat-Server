@@ -4,7 +4,7 @@ const connectionDB = require("./config/db");
 const userRoutes = require("./routes/user.routes")
 const chatRoutes = require("./routes/chat.routes")
 const messageRoutes = require("./routes/message.routes")
-
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const cors = require('cors');
 
 const app = express();
@@ -17,22 +17,28 @@ app.use(express.json());
 app.get("/", (req, res) => {
     console.log("welcome to chat app");
 })
+const proxy = createProxyMiddleware({
+    target: 'https://seo-chat-server-p5rk.vercel.app/', // Replace with your Vercel domain
+    changeOrigin: true, // Ensures CORS headers are adjusted correctly
+});
+app.use("/api/user", userRoutes, proxy);
+app.use("/api/chat", chatRoutes, proxy);
+app.use("/api/message", messageRoutes, proxy);
 
-app.use("/api/user", userRoutes);
-app.use("/api/chat", chatRoutes);
-app.use("/api/message", messageRoutes);
 
 const port =  8001
 const server = app.listen(port, console.log("server is running at post = ", port));
 
-const io = require("socket.io")(server, {
-    cors: {
-        // origin: "https://chat-app-ca.netlify.app", 
-        origin: "http://localhost:3000",
-        methods: ["GET", "POST"]
+// const io = require("socket.io")(server, {
+//     cors: {
+//         origin: "http://localhost:3000",
+//         methods: ["GET", "POST"]
 
-    },
-});
+//     },
+// });
+
+const io = require("socket.io")(server); // Remove the temporary CORS config
+
 
 io.on("connection", (socket) => {
     socket.on("setup", (userData) => {
